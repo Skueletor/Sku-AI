@@ -1,25 +1,33 @@
+/* eslint-disable */
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeAI from '@/views/HomeView.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomeView
+    name: 'HomeAI',
+    component: HomeAI
   },
   {
     path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+    name: 'AboutAI',
+    // Carga perezosa para optimizar el rendimiento
+    component: () => import('@/views/AboutAI.vue')
+  },
+  {
+    path: '/ai-call',
+    name: 'AICall',
+    component: () => import('@/views/AICall.vue')
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
+  routes,
+  scrollBehavior() {
+    // Siempre vuelve al inicio cuando se cambia de página
+    return { top: 0 }
+  }
 })
 
 export default router
