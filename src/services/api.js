@@ -1,52 +1,49 @@
 // Este archivo se utilizará para realizar las llamadas a la API de IA
-// Aquí es donde integrarás tu API de IA real
+import fetchService from './fetch';
 
 export default {
   // Método para enviar un mensaje a la API de IA y obtener una respuesta
-  async sendMessage (message) {
+  async sendMessage(message) {
     try {
-      // Aquí es donde harías la llamada fetch a tu API
-      // Por ahora, simulamos una respuesta
-
-      // Ejemplo de cómo sería la llamada real:
-      /*
-      const response = await fetch('https://tu-api-de-ia.com/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error en la respuesta de la API');
-      }
-
-      const data = await response.json();
-      return data.response;
-      */
-
+      // Por ahora, usamos la simulación, pero está preparado para usar fetchService
+      // cuando se implemente la API real
+      
       // Simulación de respuesta
       return new Promise((resolve) => {
         setTimeout(() => {
-          let response = ''
+          let response = '';
 
           if (message.toLowerCase().includes('hola') || message.toLowerCase().includes('saludos')) {
-            response = '¡Hola! ¿Cómo puedo ayudarte hoy?'
+            response = '¡Hola! ¿Cómo puedo ayudarte hoy?';
           } else if (message.toLowerCase().includes('ayuda')) {
-            response = 'Estoy aquí para asistirte. Puedes preguntarme sobre cualquier tema y haré lo mejor para responderte.'
+            response = 'Estoy aquí para asistirte. Puedes preguntarme sobre cualquier tema y haré lo mejor para responderte.';
           } else if (message.toLowerCase().includes('gracias')) {
-            response = 'De nada. Estoy aquí para ayudar.'
+            response = 'De nada. Estoy aquí para ayudar.';
+          } else if (message.toLowerCase().includes('tiempo') || message.toLowerCase().includes('hora')) {
+            response = `La hora actual es ${new Date().toLocaleTimeString()}.`;
+          } else if (message.toLowerCase().includes('fecha')) {
+            response = `La fecha actual es ${new Date().toLocaleDateString()}.`;
+          } else if (message.toLowerCase().includes('nombre')) {
+            response = 'Soy Sku-AI, tu asistente de inteligencia artificial.';
+          } else if (message.toLowerCase().includes('adiós') || message.toLowerCase().includes('chau')) {
+            response = 'Hasta luego. Ha sido un placer ayudarte.';
           } else {
-            response = 'Entiendo tu mensaje. ¿Hay algo específico en lo que pueda ayudarte?'
+            response = 'Entiendo tu mensaje. ¿Hay algo específico en lo que pueda ayudarte?';
           }
 
-          resolve(response)
-        }, 1000)
-      })
+          resolve(response);
+        }, 1000);
+      });
+      
+      // Cuando implementes la API real, descomenta este código:
+      /*
+      return await fetchService.post('chat', {
+        message: message
+      });
+      */
     } catch (error) {
-      console.error('Error al enviar mensaje a la API:', error)
-      return 'Lo siento, ha ocurrido un error al procesar tu mensaje.'
+      console.error('Error al enviar mensaje a la API:', error);
+      throw new Error('Lo siento, ha ocurrido un error al procesar tu mensaje.');
     }
   }
-}
+};

@@ -20,7 +20,7 @@ export default {
   }
 }
 </script>
-<!-- eslint-disable -->
+
 <style lang="scss">
 :root {
   --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
