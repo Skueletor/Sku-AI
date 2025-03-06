@@ -24,47 +24,45 @@
     </div>
     
     <div class="call-body">
-      <div class="chat-container">
-        <div class="ai-avatar" :class="{ speaking: isSpeaking }">
-          <div class="avatar-circle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <line x1="12" y1="19" x2="12" y2="22"></line>
-            </svg>
-            <div class="avatar-rings">
-              <div class="ring ring-1"></div>
-              <div class="ring ring-2"></div>
-              <div class="ring ring-3"></div>
-            </div>
+      <div class="ai-avatar" :class="{ speaking: isSpeaking }">
+        <div class="avatar-circle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+          <div class="avatar-rings">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
           </div>
-          <div class="avatar-name">Asistente IA</div>
-          <div v-if="isSpeaking" class="speaking-indicator">Hablando...</div>
+        </div>
+        <div class="avatar-name">Asistente IA</div>
+        <div v-if="isSpeaking" class="speaking-indicator">Hablando...</div>
+      </div>
+      
+      <div class="call-messages" ref="messagesContainer">
+        <div v-for="(message, index) in messages" :key="index" class="message" :class="message.type">
+          <div class="message-content">{{ message.text }}</div>
+          <div class="message-footer">
+            <div class="message-actions" v-if="message.type === 'ai'">
+              <button @click="speakMessage(message.text)" class="action-icon" title="Escuchar mensaje">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="message-time">{{ message.time }}</div>
+          </div>
         </div>
         
-        <div class="call-messages" ref="messagesContainer">
-          <div v-for="(message, index) in messages" :key="index" class="message" :class="message.type">
-            <div class="message-content">{{ message.text }}</div>
-            <div class="message-footer">
-              <div class="message-actions" v-if="message.type === 'ai'">
-                <button @click="speakMessage(message.text)" class="action-icon" title="Escuchar mensaje">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                  </svg>
-                </button>
-              </div>
-              <div class="message-time">{{ message.time }}</div>
-            </div>
-          </div>
-          
-          <div v-if="isTyping" class="message ai typing-indicator">
-            <div class="typing-dots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+        <div v-if="isTyping" class="message ai typing-indicator">
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
         </div>
       </div>
@@ -145,9 +143,6 @@
 </template>
 
 <script>
-import apiService from '@/services/api';
-import speechService from '@/services/speech';
-
 export default {
   name: 'CallInterface',
   data() {
@@ -162,7 +157,12 @@ export default {
       visualizerData: Array(30).fill(5),
       callStartTime: null,
       callDuration: '00:00',
-      durationInterval: null
+      durationInterval: null,
+      recognition: null,
+      speechSynthesis: null,
+      voices: [],
+      selectedVoice: null,
+      currentUtterance: null
     }
   },
   computed: {
@@ -185,29 +185,11 @@ export default {
     this.callStartTime = new Date();
     this.durationInterval = setInterval(this.updateCallDuration, 1000);
     
-    // Inicializar servicios de voz
-    speechService.init({
-      onSpeechStart: () => {
-        this.isSpeaking = true;
-      },
-      onSpeechEnd: () => {
-        this.isSpeaking = false;
-      },
-      onListeningStart: () => {
-        this.isListening = true;
-      },
-      onListeningEnd: () => {
-        this.isListening = false;
-      },
-      onResult: (text) => {
-        this.userInput = text;
-        this.sendTextMessage();
-      },
-      onError: (error) => {
-        console.error('Error de voz:', error);
-        this.isListening = false;
-      }
-    });
+    // Inicializar Web Speech API para reconocimiento de voz
+    this.initSpeechRecognition();
+    
+    // Inicializar Web Speech API para síntesis de voz
+    this.initSpeechSynthesis();
     
     // Iniciar animación del visualizador
     this.startVisualizerAnimation();
@@ -222,30 +204,56 @@ export default {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
     
-    // Detener servicios de voz
-    speechService.cleanup();
+    // Detener reconocimiento de voz si está activo
+    if (this.recognition) {
+      this.recognition.stop();
+    }
+    
+    // Detener síntesis de voz si está activa
+    if (this.currentUtterance) {
+      window.speechSynthesis.cancel();
+    }
   },
   methods: {
     // Métodos para mensajes de texto
-    async sendTextMessage() {
+    sendTextMessage() {
       if (!this.userInput.trim() || !this.isConnected) return;
       
+      this.addMessage(this.userInput, 'user');
       const userMessage = this.userInput;
-      this.addMessage(userMessage, 'user');
       this.userInput = '';
       
       this.isTyping = true;
+      setTimeout(() => {
+        this.fetchAIResponse(userMessage);
+      }, 1000);
+    },
+    
+    fetchAIResponse(message) {
+      let response = '';
       
-      try {
-        const response = await apiService.sendMessage(userMessage);
-        this.isTyping = false;
-        this.addMessage(response, 'ai');
-        this.speakMessage(response);
-      } catch (error) {
-        console.error('Error al enviar mensaje:', error);
-        this.isTyping = false;
-        this.addMessage('Lo siento, ha ocurrido un error al procesar tu mensaje.', 'ai');
+      // Respuestas simples basadas en palabras clave
+      if (message.toLowerCase().includes('hola') || message.toLowerCase().includes('saludos')) {
+        response = '¡Hola! ¿Cómo puedo ayudarte hoy?';
+      } else if (message.toLowerCase().includes('ayuda')) {
+        response = 'Estoy aquí para asistirte. Puedes preguntarme sobre cualquier tema y haré lo mejor para responderte.';
+      } else if (message.toLowerCase().includes('gracias')) {
+        response = 'De nada. Estoy aquí para ayudar.';
+      } else if (message.toLowerCase().includes('tiempo') || message.toLowerCase().includes('hora')) {
+        response = `La hora actual es ${new Date().toLocaleTimeString()}.`;
+      } else if (message.toLowerCase().includes('fecha')) {
+        response = `La fecha actual es ${new Date().toLocaleDateString()}.`;
+      } else if (message.toLowerCase().includes('nombre')) {
+        response = 'Soy Sku-AI, tu asistente de inteligencia artificial.';
+      } else if (message.toLowerCase().includes('adiós') || message.toLowerCase().includes('chau')) {
+        response = 'Hasta luego. Ha sido un placer ayudarte.';
+      } else {
+        response = 'Entiendo tu mensaje. ¿Hay algo específico en lo que pueda ayudarte?';
       }
+      
+      this.isTyping = false;
+      this.addMessage(response, 'ai');
+      this.speakMessage(response);
     },
     
     addMessage(text, type) {
@@ -263,30 +271,134 @@ export default {
     },
     
     // Métodos para síntesis de voz (TTS)
+    initSpeechSynthesis() {
+      if ('speechSynthesis' in window) {
+        this.speechSynthesis = window.speechSynthesis;
+        
+        // Cargar voces disponibles
+        this.loadVoices();
+        
+        // Algunas veces las voces se cargan de forma asíncrona
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+          speechSynthesis.onvoiceschanged = this.loadVoices;
+        }
+      }
+    },
+    
+    loadVoices() {
+      this.voices = this.speechSynthesis.getVoices();
+      
+      // Intentar encontrar una voz en español
+      this.selectedVoice = this.voices.find(voice => 
+        voice.lang.includes('es') || voice.name.includes('Spanish')
+      );
+      
+      // Si no hay voz en español, usar la primera disponible
+      if (!this.selectedVoice && this.voices.length > 0) {
+        this.selectedVoice = this.voices[0];
+      }
+    },
+    
     speakMessage(text) {
-      if (this.isSpeaking) {
-        speechService.stopSpeaking();
-        this.isSpeaking = false;
-        return;
+      if (!this.speechSynthesis) return;
+      
+      // Cancelar cualquier síntesis en curso
+      this.speechSynthesis.cancel();
+      
+      // Crear nueva instancia de utterance
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Configurar voz
+      if (this.selectedVoice) {
+        utterance.voice = this.selectedVoice;
       }
       
-      speechService.speak(text);
+      // Configurar propiedades
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Eventos
+      utterance.onstart = () => {
+        this.isSpeaking = true;
+      };
+      
+      utterance.onend = () => {
+        this.isSpeaking = false;
+        this.currentUtterance = null;
+      };
+      
+      utterance.onerror = (event) => {
+        console.error('Error de síntesis de voz:', event);
+        this.isSpeaking = false;
+        this.currentUtterance = null;
+      };
+      
+      // Guardar referencia a la utterance actual
+      this.currentUtterance = utterance;
+      
+      // Iniciar síntesis
+      this.speechSynthesis.speak(utterance);
     },
     
     // Métodos para reconocimiento de voz (STT)
+    initSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.warn('El reconocimiento de voz no está soportado en este navegador.');
+        return;
+      }
+      
+      // Crear instancia de reconocimiento
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      this.recognition = new SpeechRecognition();
+      
+      // Configurar propiedades
+      this.recognition.lang = 'es-ES';
+      this.recognition.continuous = false;
+      this.recognition.interimResults = false;
+      
+      // Eventos
+      this.recognition.onstart = () => {
+        this.isListening = true;
+      };
+      
+      this.recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        this.userInput = transcript;
+        
+        // Enviar mensaje automáticamente después de reconocimiento
+        setTimeout(() => {
+          this.sendTextMessage();
+        }, 500);
+      };
+      
+      this.recognition.onerror = (event) => {
+        console.error('Error de reconocimiento de voz:', event.error);
+        this.isListening = false;
+      };
+      
+      this.recognition.onend = () => {
+        this.isListening = false;
+      };
+    },
+    
     toggleListening() {
       if (this.isMuted) return;
       
       if (this.isListening) {
-        speechService.stopListening();
+        this.recognition.stop();
       } else {
         // Detener síntesis de voz si está activa
         if (this.isSpeaking) {
-          speechService.stopSpeaking();
+          this.speechSynthesis.cancel();
           this.isSpeaking = false;
         }
         
-        speechService.startListening();
+        try {
+          this.recognition.start();
+        } catch (error) {
+          console.error('Error al iniciar reconocimiento:', error);
+        }
       }
     },
     
@@ -296,7 +408,7 @@ export default {
       
       // Si se activa el mute mientras se está escuchando, detener reconocimiento
       if (this.isMuted && this.isListening) {
-        speechService.stopListening();
+        this.recognition.stop();
       }
     },
     
@@ -513,19 +625,12 @@ export default {
   overflow: hidden;
 }
 
-// Chat Container
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
 // Avatar
 .ai-avatar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   position: relative;
   
   &.speaking {
@@ -535,8 +640,8 @@ export default {
   }
   
   .avatar-circle {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%);
     display: flex;
@@ -545,6 +650,8 @@ export default {
     color: white;
     margin-bottom: 0.5rem;
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    animation: float 6s infinite ease-in-out;
+    position: relative;
     animation: float 6s infinite ease-in-out;
     position: relative;
     z-index: 2;
@@ -583,24 +690,24 @@ export default {
     }
     
     svg {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
     }
   }
   
   .avatar-name {
     font-weight: 600;
     color: #f8fafc;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
   
   .speaking-indicator {
-    margin-top: 0.3rem;
-    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
     background: rgba(139, 92, 246, 0.2);
-    padding: 0.2rem 0.6rem;
+    padding: 0.3rem 0.8rem;
     border-radius: 20px;
     animation: pulse 2s infinite;
   }
@@ -615,8 +722,6 @@ export default {
   border-radius: 16px;
   margin-bottom: 1rem;
   position: relative;
-  display: flex;
-  flex-direction: column;
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -658,7 +763,6 @@ export default {
     .message-content {
       margin-bottom: 0.5rem;
       line-height: 1.5;
-      word-break: break-word;
     }
     
     .message-footer {
@@ -1002,12 +1106,12 @@ export default {
   
   .ai-avatar {
     .avatar-circle {
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       
       svg {
-        width: 35px;
-        height: 35px;
+        width: 50px;
+        height: 50px;
       }
     }
   }
@@ -1046,15 +1150,15 @@ export default {
   }
   
   .ai-avatar {
-    margin-bottom: 0.8rem;
+    margin-bottom: 1rem;
     
     .avatar-circle {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       
       svg {
-        width: 30px;
-        height: 30px;
+        width: 35px;
+        height: 35px;
       }
     }
     

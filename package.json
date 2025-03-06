@@ -10,9 +10,12 @@
   "dependencies": {
     "core-js": "^3.8.3",
     "lucide-vue-next": "^0.477.0",
+    "node-record-lpcm16": "^1.0.1",
+    "speaker": "^0.5.5",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3",
-    "vuex": "^4.0.0"
+    "vuex": "^4.0.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
