@@ -10,7 +10,6 @@ const getCommonHeaders = () => {
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-    // Aquí puedes añadir headers de autenticación cuando los necesites
     // 'Authorization': `Bearer ${getToken()}`
   };
 };
